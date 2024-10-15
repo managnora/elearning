@@ -1,6 +1,5 @@
 FROM php:7.4-fpm-bullseye AS elearning_php_fpm_base
 
-ARG SOURCE_ROOT
 ENV PHP_MEMORY_LIMIT 4G
 
 #Install Locales
@@ -45,9 +44,9 @@ COPY docker/backend/php-fpm.conf /usr/local/etc/
 COPY docker/backend/conf.d/custom.ini /usr/local/etc/php/conf.d/zz-local.ini
 COPY docker/backend/conf.d/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 
-RUN mkdir -p "${SOURCE_ROOT}/public"
+RUN mkdir -p "/var/www/elearning/public"
 
-WORKDIR ${SOURCE_ROOT}
+WORKDIR /var/www/elearning
 
 EXPOSE 9000
 
@@ -81,12 +80,6 @@ EXPOSE 80
 ######### Dev Dependencies ############
 FROM elearning_php_fpm_base AS elearning_php_fpm_dev
 
-ARG SOURCE_ROOT
-ARG DOCKER_USER_NAME
-ARG DOCKER_HOST_UID
-ARG DOCKER_GROUP_NAME
-ARG DOCKER_HOST_GID
-
 # Install System dependencies
 RUN apt-get install -y --no-install-recommends --no-install-suggests \
     git
@@ -107,10 +100,10 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
 	&& mv composer.phar /usr/bin/composer
 
 # File mode/permissions trick
-RUN groupadd --gid ${DOCKER_HOST_GID} ${DOCKER_GROUP_NAME} \
-    && useradd --uid ${DOCKER_HOST_UID} --gid ${DOCKER_GROUP_NAME} --shell /bin/bash --create-home --home ${SOURCE_ROOT} ${DOCKER_USER_NAME} \
-    && chown -R ${DOCKER_USER_NAME} ${SOURCE_ROOT} \
-    && usermod -a -G www-data ${DOCKER_USER_NAME}
+RUN groupadd --gid 1001 elearningdev \
+    && useradd --uid 1001 --gid elearningdev --shell /bin/bash --create-home --home /var/www/elearning elearningdev \
+    && chown -R elearningdev /var/www/elearning \
+    && usermod -a -G www-data elearningdev
 
 # RUN chown -R ${DOCKER_USER_NAME}:${DOCKER_GROUP_NAME} /var/log/supervisor /var/log/apache2 /var/lock/apache2 /var/run/apache2
 
@@ -118,10 +111,7 @@ RUN groupadd --gid ${DOCKER_HOST_GID} ${DOCKER_GROUP_NAME} \
 
 FROM elearning_php_fpm_dev AS elearning_php_fpm_builder
 
-ARG SOURCE_ROOT
-ARG DOCKER_USER_NAME
-
-COPY --chown=${DOCKER_USER_NAME} . ${SOURCE_ROOT}
+COPY --chown=elearningdev . "/var/www/elearning"
 
 RUN composer install --no-dev
 
@@ -133,6 +123,4 @@ RUN php artisan optimize
 
 FROM elearning_php_fpm_base AS elearning_php_fpm_run
 
-ARG SOURCE_ROOT
-
-COPY --from=elearning_php_fpm_builder --chown=www-data ${SOURCE_ROOT} ${SOURCE_ROOT}
+COPY --from=elearning_php_fpm_builder --chown=www-data "/var/www/elearning" "/var/www/elearning"

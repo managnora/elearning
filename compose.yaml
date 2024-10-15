@@ -8,14 +8,15 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./docker/httpd/logs/:/var/log/apache2
+      - ./docker/httpd/ssl/:/etc/ssl
       - ./docker/httpd/httpd.conf:/usr/local/apache2/conf/httpd.conf
       - ./docker/httpd/vhosts/:/usr/local/apache2/conf/vhosts
     networks:
-      - devstack
+      - elearning
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "84:80"
+      - "8443:443"
 
   app:
     container_name: elearning-app
@@ -23,12 +24,6 @@ services:
       context: ./
       dockerfile: ./docker/backend/Dockerfile
       target: elearning_php_fpm_dev
-      args:
-        DOCKER_USER_NAME: ${DOCKER_USER_NAME}
-        DOCKER_HOST_UID: ${DOCKER_HOST_UID}
-        DOCKER_GROUP_NAME: ${DOCKER_GROUP_NAME}
-        DOCKER_HOST_GID: ${DOCKER_HOST_GID}
-        SOURCE_ROOT: ${SOURCE_ROOT}
     depends_on:
       - httpd
     volumes:
@@ -36,7 +31,7 @@ services:
       - /home/alvin/Documents/PRIVE/elearning:/var/www/elearning
     networks:
       - elearning
-      - devstack
+      # - devstackelearning
     restart: unless-stopped
     expose:
       - 80
@@ -48,12 +43,6 @@ services:
     build:
       context: ./
       dockerfile: ./docker/frontend/Dockerfile
-      args:
-        DOCKER_USER_NAME: ${DOCKER_USER_NAME}
-        DOCKER_HOST_UID: ${DOCKER_HOST_UID}
-        DOCKER_GROUP_NAME: ${DOCKER_GROUP_NAME}
-        DOCKER_HOST_GID: ${DOCKER_HOST_GID}
-        SOURCE_ROOT: ${SOURCE_ROOT}
     depends_on:
       - app
     volumes:
@@ -61,7 +50,7 @@ services:
       - /home/alvin/Documents/PRIVE/elearning:/var/www/elearning
     networks:
       - elearning
-      - devstack
+      #- devstackelearning
     expose:
       - 8080
     restart: unless-stopped
@@ -69,8 +58,8 @@ services:
 networks:
   elearning:
     driver: bridge
-  devstack:
-    name: devstack
+  devstackelearning:
+    name: devstackelearning
     driver: bridge
     external: true
 volumes:

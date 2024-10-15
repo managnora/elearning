@@ -1,5 +1,5 @@
 FROM httpd:2.4
 
-WORKDIR ${SOURCE_ROOT}
+WORKDIR /var/www/elearning
 
-USER ${DOCKER_USER_NAME}:${DOCKER_GROUP_NAME}
+USER elearningdev:elearningdev
